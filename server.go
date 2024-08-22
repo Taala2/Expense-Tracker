@@ -50,7 +50,11 @@ func saveExpense(f string) error {
 	return encoder.Encode(expensesTrackersStorage)
 }
 
-func addExpense(description string, amount float64) {
+func addExpense(description string, amount float64) error{
+	if amount < 0 {
+		return fmt.Errorf("invalid amount")
+	}
+
 	exp := ExpenseTracker{
 		Id:          expensesTrackersStorage.NextId,
 		Date:        time.Now(),
@@ -61,13 +65,14 @@ func addExpense(description string, amount float64) {
 	expensesTrackersStorage.Trackers = append(expensesTrackersStorage.Trackers, exp)
 
 	fmt.Printf("Expense added: %d", exp.Id)
+	return nil
 }
 
 func expensesList() {
 	fmt.Println("ID	Date		Amount	Description")
 
 	for _, exp := range expensesTrackersStorage.Trackers {
-		fmt.Printf("%d	%s	%.2f	%s\n", exp.Id, exp.Date.Format("2006-01-02"), exp.Amount, exp.Description)
+		fmt.Printf("%d	%s	$%.2f	%s\n", exp.Id, exp.Date.Format("2006-01-02"), exp.Amount, exp.Description)
 	}
 }
 
@@ -98,16 +103,59 @@ func deleteExpense(id string) {
 		if exp.Id == ida {
 			expensesTrackersStorage.Trackers = append(expensesTrackersStorage.Trackers[:i], expensesTrackersStorage.Trackers[i+1:]...)
 			fmt.Printf("Expense deleted: %d\n", ida)
+
+			for j := i; j < len(expensesTrackersStorage.Trackers); j++ {
+				expensesTrackersStorage.Trackers[j].Id--
+			}
+	
+			expensesTrackersStorage.NextId--
+
 			return
 		}
 	}
 }
 
+func updateExpense(id string, arg string, change string) error {
+	ida, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+
+	if arg == "--d" {
+		for i, exp := range expensesTrackersStorage.Trackers {
+			if exp.Id == ida {
+				expensesTrackersStorage.Trackers[i].Description = change
+			} else {
+				return fmt.Errorf("expense not found")
+			}
+		}
+	} else if arg == "--a" {
+		change, err := strconv.ParseFloat(change, 64)
+		if err != nil {
+			return err
+		}
+
+		for i, exp := range expensesTrackersStorage.Trackers {
+			if exp.Id == ida {
+				expensesTrackersStorage.Trackers[i].Amount = change
+			} else {
+				return fmt.Errorf("expense not found")
+			}
+		}
+	} else {
+		return err
+	}
+
+	fmt.Printf("Expense updated")
+
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: help")
+		os.Exit(1)
 	}
-
 	arg := os.Args[1]
 
 	filepath := "data.json"
@@ -119,31 +167,46 @@ func main() {
 
 	switch arg {
 	case "add":
-		if len(os.Args) < 2 {
+		if len(os.Args) < 2 || len(os.Args) > 4 {
 			fmt.Println("Usage: add <description> <amount>")
 		}
 		amount, err := strconv.ParseFloat(os.Args[3], 64)
 		if err != nil {
-			fmt.Println("Error parsing amount: ", err)
+			fmt.Println("Error parsing amount")
 		}
-		addExpense(os.Args[2], amount)
+		err =addExpense(os.Args[2], amount)
+		if err != nil {
+			fmt.Println("Error adding expense: ", err)
+		}
 		saveExpense(filepath)
 	case "list":
 		expensesList()
 	case "summary":
 		summary()
 	case "month-summary":
-		if len(os.Args) > 2 {
-			monthSummary(os.Args[2])
+		if len(os.Args) < 2 {
+			monthSummary("")
+			fmt.Println("Usage: month-summary --month <mouth> for example: month-summary --month 8")
 		} else if os.Args[2] == "--mouth" {
-			fmt.Println("Usage: month-summary <mouth>")
-		}
+			monthSummary(os.Args[3])
+		}else{
+			fmt.Println("Usage: month-summary --month <mouth> for example: month-summary --month 8")}
 	case "delete":
 		if len(os.Args) == 3 {
 			deleteExpense(os.Args[2])
 			saveExpense(filepath)
 		} else {
 			fmt.Println("Usage: delete <id>")
+		}
+	case "update":
+		if len(os.Args) == 5 {
+			err = updateExpense(os.Args[2], os.Args[3], os.Args[4])
+			if err != nil {
+				fmt.Println("Error updating expense: ", err)
+			}
+			saveExpense(filepath)
+		} else {
+			fmt.Println("Usage: update <id> --d or --a <argument>")
 		}
 	default:
 		fmt.Println("Usage: help")
