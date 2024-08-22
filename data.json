@@ -1,0 +1,11 @@
+{
+ "expanse_tracker": [
+  {
+   "id": 1,
+   "date": "2024-08-21T17:51:53.208683+05:45",
+   "amount": 23232,
+   "description": "sds"
+  }
+ ],
+ "next_id": 2
+}
