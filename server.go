@@ -50,7 +50,7 @@ func saveExpense(f string) error {
 	return encoder.Encode(expensesTrackersStorage)
 }
 
-func addExpense(description string, amount float64) error{
+func addExpense(description string, amount float64) error {
 	if amount < 0 {
 		return fmt.Errorf("invalid amount")
 	}
@@ -107,12 +107,21 @@ func deleteExpense(id string) {
 			for j := i; j < len(expensesTrackersStorage.Trackers); j++ {
 				expensesTrackersStorage.Trackers[j].Id--
 			}
-	
+
 			expensesTrackersStorage.NextId--
 
 			return
 		}
 	}
+}
+
+func help() {
+	fmt.Println("add <description> <amount>")
+	fmt.Println("list")
+	fmt.Println("summary")
+	fmt.Println("month-summary --month <mouth> for example: month-summary --month 8")
+	fmt.Println("delete <id>")
+	fmt.Println("update <id> --d or --a <argument>")
 }
 
 func updateExpense(id string, arg string, change string) error {
@@ -174,7 +183,7 @@ func main() {
 		if err != nil {
 			fmt.Println("Error parsing amount")
 		}
-		err =addExpense(os.Args[2], amount)
+		err = addExpense(os.Args[2], amount)
 		if err != nil {
 			fmt.Println("Error adding expense: ", err)
 		}
@@ -189,8 +198,9 @@ func main() {
 			fmt.Println("Usage: month-summary --month <mouth> for example: month-summary --month 8")
 		} else if os.Args[2] == "--mouth" {
 			monthSummary(os.Args[3])
-		}else{
-			fmt.Println("Usage: month-summary --month <mouth> for example: month-summary --month 8")}
+		} else {
+			fmt.Println("Usage: month-summary --month <mouth> for example: month-summary --month 8")
+		}
 	case "delete":
 		if len(os.Args) == 3 {
 			deleteExpense(os.Args[2])
@@ -208,6 +218,8 @@ func main() {
 		} else {
 			fmt.Println("Usage: update <id> --d or --a <argument>")
 		}
+	case "help":
+		help()
 	default:
 		fmt.Println("Usage: help")
 	}
